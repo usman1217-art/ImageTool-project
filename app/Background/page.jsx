@@ -1,19 +1,24 @@
 'use client';
 
-import { useState } from 'react';
-
+import { useState, useEffect } from 'react';
 import Features from '../Features/page';
 
 export default function BackgroundRemover() {
-  const [originalFile, setOriginalFile] = useState(null);  
+  const [originalFile, setOriginalFile] = useState(null);
   const [originalImage, setOriginalImage] = useState(null);
   const [processedImage, setProcessedImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [mounted, setMounted] = useState(false);
 
-  const handleFileChange = async (event) => {
-    const file = event.target.files[0];
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
     if (file) {
+      if (originalImage) URL.revokeObjectURL(originalImage);
       setOriginalFile(file);
       setOriginalImage(URL.createObjectURL(file));
       setProcessedImage(null);
@@ -23,116 +28,114 @@ export default function BackgroundRemover() {
 
   const removeBg = async () => {
     if (!originalFile) return;
-  
     setLoading(true);
     setError(null);
-  
+
     try {
       const formData = new FormData();
-      formData.append("image_file", originalFile);
-      formData.append("size", "auto");
-  
-      const response = await fetch("/api/remove-bg", {
-        method: "POST",
+      formData.append('image', originalFile);
+
+      const response = await fetch('/api/remove-bg', {
+        method: 'POST',
         body: formData,
       });
-  
-      if (!response.ok) {
-        throw new Error("Background removal failed");
-      }
-  
+
+      if (!response.ok) throw new Error('Failed to remove background. Check API credits.');
+
       const blob = await response.blob();
+      if (processedImage) URL.revokeObjectURL(processedImage);
       setProcessedImage(URL.createObjectURL(blob));
     } catch (err) {
-      console.error(err);
-      setError("Failed to remove background." ,err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
-  
 
   const downloadImage = () => {
-    if (processedImage) {
-      const link = document.createElement('a');
-      link.href = processedImage;
-      link.download = 'background_removed.png';
-      link.click();
-    }
+    const link = document.createElement('a');
+    link.href = processedImage;
+    link.download = 'removed_bg.png';
+    link.click();
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-    
+  if (!mounted) return null;
 
-    
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center">
-          <h2 className="text-4xl font-extrabold text-gray-900 sm:text-5xl">Background Remover</h2>
-          <p className="mt-4 text-lg text-gray-500">Remove backgrounds from images using AI.</p>
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <main className="max-w-6xl mx-auto px-6 py-16">
+        
+        {/* Title Section */}
+        <div className="text-center mb-16">
+          <h1 className="text-6xl font-black text-slate-900 tracking-tighter">
+            Magic <span className="text-indigo-600">Eraser</span>
+          </h1>
+          <p className="mt-4 text-slate-500 text-lg">Fast, AI-powered background removal.</p>
         </div>
 
-        <div className="mt-12 max-w-4xl mx-auto">
-          <div className="bg-white shadow rounded-lg p-6">
-         
-            {error && (
-              <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-                {error}
+        <div className="max-w-4xl mx-auto space-y-8">
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 text-red-700 rounded-r-lg">
+              {error}
+            </div>
+          )}
+
+          {/* Upload Box */}
+          <div className="bg-white p-2 rounded-3xl shadow-xl border border-slate-200">
+            <label className="group relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 hover:border-indigo-400 transition-all">
+              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <div className="p-4 bg-indigo-50 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <p className="text-lg font-bold text-slate-700">Drop your image here</p>
+                <p className="text-sm text-slate-400">PNG or JPG up to 10MB</p>
+              </div>
+              <input type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
+            </label>
+          </div>
+
+          {/* Action Button */}
+          {originalImage && (
+            <button
+              onClick={removeBg}
+              disabled={loading}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 rounded-2xl shadow-lg shadow-indigo-200 transition-all disabled:opacity-50 text-xl"
+            >
+              {loading ? 'AI is working...' : 'Remove Background Now'}
+            </button>
+          )}
+
+          {/* Result Grid */}
+          <div className="grid md:grid-cols-2 gap-8">
+            {originalImage && (
+              <div className="bg-white p-4 rounded-3xl shadow-md border border-slate-100">
+                <p className="text-center font-bold text-slate-400 mb-4 text-sm uppercase">Original</p>
+                <img src={originalImage} className="rounded-xl w-full h-auto max-h-[400px] object-contain" alt="Original" />
               </div>
             )}
 
-           
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Upload an Image
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-              />
-            </div>
-
-       
-            {originalImage && (
-              <div className="mb-6">
+            {processedImage && (
+              <div className="bg-white p-4 rounded-3xl shadow-md border border-slate-100">
+                <p className="text-center font-bold text-indigo-600 mb-4 text-sm uppercase">Result</p>
+                <div className="rounded-xl overflow-hidden bg-[url('https://www.transparenttextures.com/patterns/checkerboard.png')] bg-gray-200">
+                  <img src={processedImage} className="w-full h-auto max-h-[400px] object-contain" alt="Processed" />
+                </div>
                 <button
-                  onClick={removeBg}
-                  disabled={loading}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                  onClick={downloadImage}
+                  className="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition-colors"
                 >
-                  {loading ? 'Processing...' : 'Remove Background'}
+                  Download PNG
                 </button>
               </div>
             )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {originalImage && (
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Original</h3>
-                  <img src={originalImage} alt="Original" className="w-full h-auto rounded-lg shadow" />
-                </div>
-              )}
-              {processedImage && (
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Processed</h3>
-                  <img src={processedImage} alt="Processed" className="w-full h-auto rounded-lg shadow" />
-                  <button
-                    onClick={downloadImage}
-                    className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                  >
-                    Download Image
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </main>
-        <Features showHeading={false}/>
 
-      
+      <Features showHeading={false} />
     </div>
   );
 }

@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import imageCompression from "browser-image-compression";
-import Features from "../Features/page";
+import { useState, useEffect } from 'react';
+import imageCompression from 'browser-image-compression';
+import Features from '../Features/page';
 
 export default function Compressor() {
   const [originalFile, setOriginalFile] = useState(null);
@@ -12,19 +12,28 @@ export default function Compressor() {
   const [compressedSize, setCompressedSize] = useState(0);
   const [quality, setQuality] = useState(0.8);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
- 
+  // Hydration safety and memory cleanup
+  useEffect(() => {
+    setMounted(true);
+    return () => {
+      if (originalImage) URL.revokeObjectURL(originalImage);
+      if (compressedImage) URL.revokeObjectURL(compressedImage);
+    };
+  }, [originalImage, compressedImage]);
+
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (originalImage) URL.revokeObjectURL(originalImage);
     setOriginalFile(file);
     setOriginalImage(URL.createObjectURL(file));
     setOriginalSize(file.size);
     setCompressedImage(null);
     setCompressedSize(0);
   };
-
 
   const compressImage = async () => {
     if (!originalFile) return;
@@ -38,15 +47,13 @@ export default function Compressor() {
         initialQuality: quality,
       };
 
-      const compressedFile = await imageCompression(
-        originalFile,
-        options
-      );
+      const compressedFile = await imageCompression(originalFile, options);
 
+      if (compressedImage) URL.revokeObjectURL(compressedImage);
       setCompressedImage(URL.createObjectURL(compressedFile));
       setCompressedSize(compressedFile.size);
     } catch (err) {
-      console.error("Image compression failed:", err);
+      console.error("Compression failed:", err);
     } finally {
       setLoading(false);
     }
@@ -54,106 +61,121 @@ export default function Compressor() {
 
   const downloadImage = () => {
     if (!compressedImage) return;
-
     const link = document.createElement("a");
     link.href = compressedImage;
-    link.download = "compressed-image.jpg";
+    link.download = `compressed_${originalFile.name}`;
     link.click();
   };
 
+  if (!mounted) return null;
+
+  // Calculate percentage saved
+  const savedPercent = originalSize > 0 
+    ? Math.max(0, Math.round(((originalSize - compressedSize) / originalSize) * 100)) 
+    : 0;
+
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      
-        <div className="text-center">
-          <h2 className="text-4xl font-extrabold text-gray-900 sm:text-5xl">
-            Image Compressor
-          </h2>
-          <p className="mt-4 text-lg text-gray-500">
-            Reduce image size without losing quality.
+    <div className="min-h-screen bg-slate-50">
+      <main className="max-w-6xl mx-auto px-6 py-16">
+        
+        {/* Header Section */}
+        <div className="text-center mb-16">
+          <h1 className="text-6xl font-black text-slate-900 tracking-tighter">
+            Smart <span className="text-indigo-600">Squeezer</span>
+          </h1>
+          <p className="mt-4 text-slate-500 text-lg">
+            Reduce file size by up to 90% while keeping high visual quality.
           </p>
         </div>
 
-        <div className="mt-12 max-w-4xl mx-auto">
-          <div className="bg-white shadow rounded-lg p-6">
+        <div className="max-w-4xl mx-auto space-y-8">
           
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Upload an Image
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-              />
-            </div>
+          {/* Upload Box */}
+          <div className="bg-white p-2 rounded-3xl shadow-xl border border-slate-200">
+            <label className="group relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 hover:border-indigo-400 transition-all">
+              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <div className="p-4 bg-indigo-50 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
+                </div>
+                <p className="text-lg font-bold text-slate-700">Drop your heavy image here</p>
+                <p className="text-sm text-slate-400">Works with PNG, JPG, and WebP</p>
+              </div>
+              <input type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
+            </label>
+          </div>
 
-            {originalImage && (
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Compression Quality: {Math.round(quality * 100)}%
-                </label>
+          {/* Compression Settings */}
+          {originalImage && (
+            <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 space-y-6">
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    Target Quality: {Math.round(quality * 100)}%
+                  </label>
+                  <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
+                    {quality > 0.7 ? 'High Quality' : quality > 0.4 ? 'Balanced' : 'Smallest Size'}
+                  </span>
+                </div>
                 <input
                   type="range"
                   min="0.1"
                   max="1"
                   step="0.1"
                   value={quality}
-                  onChange={(e) =>
-                    setQuality(parseFloat(e.target.value))
-                  }
-                  className="w-full"
+                  onChange={(e) => setQuality(parseFloat(e.target.value))}
+                  className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                 />
+              </div>
 
-                <button
-                  onClick={compressImage}
-                  disabled={loading}
-                  className="mt-4 w-full py-2 px-4 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {loading ? "Compressing..." : "Compress Image"}
-                </button>
+              <button
+                onClick={compressImage}
+                disabled={loading}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 rounded-2xl shadow-lg shadow-indigo-200 transition-all active:scale-[0.98] disabled:opacity-50 text-xl"
+              >
+                {loading ? 'Squeezing...' : 'Compress Image Now'}
+              </button>
+            </div>
+          )}
+
+          {/* Result Grid */}
+          <div className="grid md:grid-cols-2 gap-8">
+            {originalImage && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-end px-2">
+                  <p className="font-bold text-slate-400 text-sm uppercase tracking-widest">Original</p>
+                  <p className="text-slate-900 font-bold">{(originalSize / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+                <div className="bg-white p-3 rounded-3xl shadow-md border border-slate-100 h-[350px] flex items-center justify-center overflow-hidden">
+                  <img src={originalImage} className="max-w-full max-h-full object-contain rounded-xl" alt="Original" />
+                </div>
               </div>
             )}
 
-          
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {originalImage && (
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Original</h3>
-                  <img
-                    src={originalImage}
-                    alt="Original"
-                    className="w-full rounded-lg shadow"
-                  />
-                  <p className="mt-2 text-sm text-gray-500">
-                    Size: {(originalSize / 1024 / 1024).toFixed(2)} MB
-                  </p>
+            {compressedImage && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-end px-2">
+                  <p className="font-bold text-indigo-600 text-sm uppercase tracking-widest">Compressed</p>
+                  <div className="text-right">
+                     <p className="text-emerald-600 font-bold">{(compressedSize / 1024 / 1024).toFixed(2)} MB</p>
+                     <p className="text-[10px] font-black text-emerald-500 uppercase">Saved {savedPercent}%</p>
+                  </div>
                 </div>
-              )}
-
-              {compressedImage && (
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Compressed</h3>
-                  <img
-                    src={compressedImage}
-                    alt="Compressed"
-                    className="w-full rounded-lg shadow"
-                  />
-                  <p className="mt-2 text-sm text-gray-500">
-                    Size:{" "}
-                    {(compressedSize / 1024 / 1024).toFixed(2)} MB
-                  </p>
-
-                  <button
-                    onClick={downloadImage}
-                    className="mt-4 w-full py-2 px-4 rounded-md text-white bg-green-600 hover:bg-green-700"
-                  >
-                    Download Compressed Image
-                  </button>
+                <div className="bg-white p-3 rounded-3xl shadow-md border border-indigo-100 h-[350px] flex items-center justify-center overflow-hidden">
+                  <img src={compressedImage} className="max-w-full max-h-full object-contain rounded-xl" alt="Compressed" />
                 </div>
-              )}
-            </div>
+                <button
+                  onClick={downloadImage}
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-emerald-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download Compressed
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </main>

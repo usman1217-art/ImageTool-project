@@ -10,6 +10,7 @@
   "dependencies": {
     "@imgly/background-removal": "^1.7.0",
     "browser-image-compression": "^2.0.2",
+    "framer-motion": "^12.23.26",
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
