@@ -202,7 +202,7 @@ export default function Compressor() {
         </div>
       </main>
 
-      <Features showHeading={false} />
+      {/* <Features showHeading={false} /> */}
     </div>
   );
 }

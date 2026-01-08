@@ -169,7 +169,7 @@ export default function BackgroundRemover() {
         </div>
       </main>
 
-      <Features showHeading={false} />
+      {/* <Features showHeading={false} /> */}
     </div>
   );
 }

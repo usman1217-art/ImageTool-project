@@ -223,7 +223,7 @@ export default function Converter() {
           </div>
         </div>
       </main>
-      <Features showHeading={false} />
+      {/* <Features showHeading={false} /> */}
     </div>
   );
 }
