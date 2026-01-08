@@ -41,7 +41,7 @@ function Home() {
         <div className="mt-12 flex flex-wrap justify-center gap-10 text-gray-700">
 
           <div className="text-center">
-            <h3 className="text-3xl font-bold text-indigo-600">5,000+</h3>
+            <h3 className="text-3xl font-bold text-indigo-600">500+</h3>
             <p className="text-sm mt-1">Images Converted</p>
           </div>
 

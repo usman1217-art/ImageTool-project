@@ -10,6 +10,7 @@ export default function Compressor() {
   const [compressedImage, setCompressedImage] = useState(null);
   const [originalSize, setOriginalSize] = useState(0);
   const [compressedSize, setCompressedSize] = useState(0);
+  const [customName, setCustomName] = useState(''); // New state for renaming
   const [quality, setQuality] = useState(0.8);
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -26,6 +27,10 @@ export default function Compressor() {
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Auto-fill filename (stripping existing extension)
+    const baseName = file.name.replace(/\.[^/.]+$/, "");
+    setCustomName(baseName);
 
     if (originalImage) URL.revokeObjectURL(originalImage);
     setOriginalFile(file);
@@ -63,13 +68,17 @@ export default function Compressor() {
     if (!compressedImage) return;
     const link = document.createElement("a");
     link.href = compressedImage;
-    link.download = `compressed_${originalFile.name}`;
+    
+    // Get extension from original file or default to jpg
+    const extension = originalFile.name.split('.').pop();
+    const fileName = customName.trim() || 'compressed_image';
+    
+    link.download = `${fileName}.${extension}`;
     link.click();
   };
 
   if (!mounted) return null;
 
-  // Calculate percentage saved
   const savedPercent = originalSize > 0 
     ? Math.max(0, Math.round(((originalSize - compressedSize) / originalSize) * 100)) 
     : 0;
@@ -84,7 +93,7 @@ export default function Compressor() {
             Smart <span className="text-indigo-600">Squeezer</span>
           </h1>
           <p className="mt-4 text-slate-500 text-lg">
-            Reduce file size by up to 90% while keeping high visual quality.
+            Reduce file size while keeping high visual quality.
           </p>
         </div>
 
@@ -119,10 +128,7 @@ export default function Compressor() {
                   </span>
                 </div>
                 <input
-                  type="range"
-                  min="0.1"
-                  max="1"
-                  step="0.1"
+                  type="range" min="0.1" max="1" step="0.1"
                   value={quality}
                   onChange={(e) => setQuality(parseFloat(e.target.value))}
                   className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
@@ -132,7 +138,7 @@ export default function Compressor() {
               <button
                 onClick={compressImage}
                 disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 rounded-2xl shadow-lg shadow-indigo-200 transition-all active:scale-[0.98] disabled:opacity-50 text-xl"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 rounded-2xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 text-xl"
               >
                 {loading ? 'Squeezing...' : 'Compress Image Now'}
               </button>
@@ -159,20 +165,36 @@ export default function Compressor() {
                   <p className="font-bold text-indigo-600 text-sm uppercase tracking-widest">Compressed</p>
                   <div className="text-right">
                      <p className="text-emerald-600 font-bold">{(compressedSize / 1024 / 1024).toFixed(2)} MB</p>
-                     <p className="text-[10px] font-black text-emerald-500 uppercase">Saved {savedPercent}%</p>
+                     <p className="text-[10px] font-black text-emerald-500 uppercase tracking-tighter">Saved {savedPercent}%</p>
                   </div>
                 </div>
                 <div className="bg-white p-3 rounded-3xl shadow-md border border-indigo-100 h-[350px] flex items-center justify-center overflow-hidden">
                   <img src={compressedImage} className="max-w-full max-h-full object-contain rounded-xl" alt="Compressed" />
                 </div>
+
+                {/* File Rename Input */}
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Download Name</label>
+                  <div className="flex items-center bg-slate-50 rounded-lg px-3 border border-slate-100 focus-within:border-indigo-300 transition-colors">
+                    <input 
+                      type="text" 
+                      value={customName}
+                      onChange={(e) => setCustomName(e.target.value)}
+                      placeholder="Enter file name"
+                      className="bg-transparent border-none w-full py-2 text-slate-700 font-medium focus:ring-0 outline-none"
+                    />
+                    <span className="text-slate-400 font-bold text-sm">.{originalFile?.name.split('.').pop()}</span>
+                  </div>
+                </div>
+
                 <button
                   onClick={downloadImage}
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-emerald-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                 >
-                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
-                  Download Compressed
+                  Download Squeezed Image
                 </button>
               </div>
             )}
