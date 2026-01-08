@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Features from '../Features/page';
-import heic2any from 'heic2any';
-import { jsPDF } from 'jspdf';
+
+// 1. Remove static imports for jspdf and heic2any
+// import heic2any from 'heic2any';
+// import { jsPDF } from 'jspdf';
 
 export default function Converter() {
   const [originalImage, setOriginalImage] = useState(null);
   const [convertedImage, setConvertedImage] = useState(null);
   const [format, setFormat] = useState('png');
-  const [customName, setCustomName] = useState(''); // New state for custom filename
+  const [customName, setCustomName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [mounted, setMounted] = useState(false);
@@ -29,13 +31,14 @@ export default function Converter() {
     setLoading(true);
     setError(null);
     
-    // Auto-fill filename (stripping existing extension)
     const baseName = file.name.replace(/\.[^/.]+$/, "");
     setCustomName(baseName);
 
     try {
       let displayFile = file;
       if (file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
+        // 2. Dynamic Import for heic2any
+        const heic2any = (await import('heic2any')).default;
         const convertedBlob = await heic2any({
           blob: file,
           toType: 'image/jpeg',
@@ -47,6 +50,7 @@ export default function Converter() {
       setOriginalImage(URL.createObjectURL(displayFile));
       setConvertedImage(null);
     } catch (err) {
+      console.error(err);
       setError('Could not process this file type.');
     } finally {
       setLoading(false);
@@ -62,7 +66,7 @@ export default function Converter() {
       const img = new window.Image();
       img.src = originalImage;
 
-      img.onload = () => {
+      img.onload = async () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = img.width;
@@ -76,6 +80,8 @@ export default function Converter() {
         ctx.drawImage(img, 0, 0);
 
         if (format === 'pdf') {
+          // 3. Dynamic Import for jsPDF
+          const { jsPDF } = await import('jspdf');
           const imgData = canvas.toDataURL('image/jpeg', 0.9);
           const pdf = new jsPDF({
             orientation: canvas.width > canvas.height ? 'l' : 'p',
@@ -107,19 +113,21 @@ export default function Converter() {
     if (convertedImage) {
       const link = document.createElement('a');
       link.href = convertedImage;
-      // Use customName or fallback to default
       const fileName = customName.trim() || 'converted_file';
       link.download = `${fileName}.${format}`;
       link.click();
     }
   };
 
-  if (!mounted) return null;
+  // 4. Ensure component only renders content once mounted in browser
+  if (!mounted) {
+    return <div className="min-h-screen bg-slate-50" />; 
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* ... rest of your JSX remains exactly the same ... */}
       <main className="max-w-6xl mx-auto px-6 py-16">
-        
         <div className="text-center mb-16">
           <h1 className="text-6xl font-black text-slate-900 tracking-tighter">
             Format <span className="text-indigo-600">Shifter</span>
@@ -130,7 +138,6 @@ export default function Converter() {
         <div className="max-w-4xl mx-auto space-y-8">
           {error && <div className="bg-red-50 border-l-4 border-red-500 p-4 text-red-700 rounded-r-lg">{error}</div>}
 
-          {/* Upload Box */}
           <div className="bg-white p-2 rounded-3xl shadow-xl border border-slate-200">
             <label className="group relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 hover:border-indigo-400 transition-all">
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -141,7 +148,6 @@ export default function Converter() {
             </label>
           </div>
 
-          {/* Controls */}
           {originalImage && (
             <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 flex flex-col md:flex-row gap-4 items-end">
               <div className="w-full">
@@ -168,7 +174,6 @@ export default function Converter() {
             </div>
           )}
 
-          {/* Results */}
           <div className="grid md:grid-cols-2 gap-8">
             {originalImage && (
               <div className="space-y-4">
@@ -193,7 +198,6 @@ export default function Converter() {
                   )}
                 </div>
 
-                {/* File Rename Input */}
                 <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                   <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">File Name</label>
                   <div className="flex items-center bg-slate-50 rounded-lg px-3 border border-slate-100 focus-within:border-indigo-300 transition-colors">
